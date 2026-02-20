@@ -1,0 +1,133 @@
+import { Outlet, Link, useLocation, useNavigate } from "react-router";
+import { Button } from "../components/ui/button";
+import { Leaf, LayoutDashboard, Users, ChefHat, Truck, Calendar, CreditCard, FileText, Wrench, LogOut, Menu, X } from "lucide-react";
+import { useState } from "react";
+
+export default function AdminLayout() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const navItems = [
+    { path: "/admin", label: "Dashboard", icon: LayoutDashboard },
+    { path: "/admin/users", label: "Users", icon: Users },
+    { path: "/admin/dietitians", label: "Dietitians", icon: ChefHat },
+    { path: "/admin/caterers", label: "Caterers", icon: Truck },
+    { path: "/admin/menus", label: "Menus", icon: Calendar },
+    { path: "/admin/payments", label: "Payments", icon: CreditCard },
+    { path: "/admin/logs", label: "Logs", icon: FileText },
+    { path: "/admin/tools", label: "Tools", icon: Wrench },
+  ];
+
+  const handleLogout = () => {
+    navigate("/login");
+  };
+
+  const isActive = (path: string) => {
+    if (path === "/admin") {
+      return location.pathname === path;
+    }
+    return location.pathname.startsWith(path);
+  };
+
+  return (
+    <div className="min-h-screen bg-muted/30">
+      <header className="lg:hidden bg-white border-b sticky top-0 z-50">
+        <div className="flex items-center justify-between px-4 py-3">
+          <Link to="/admin" className="flex items-center gap-2">
+            <Leaf className="size-6 text-primary" />
+            <span className="font-semibold">NutriFlow Admin</span>
+          </Link>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+          </Button>
+        </div>
+        {mobileMenuOpen && (
+          <nav className="border-t bg-white max-h-[calc(100vh-60px)] overflow-y-auto">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center gap-3 px-4 py-3 transition ${
+                    isActive(item.path)
+                      ? "bg-primary-light text-primary"
+                      : "text-foreground hover:bg-muted"
+                  }`}
+                >
+                  <Icon className="size-5" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                handleLogout();
+              }}
+              className="flex items-center gap-3 px-4 py-3 w-full text-left text-destructive hover:bg-muted transition"
+            >
+              <LogOut className="size-5" />
+              <span>Logout</span>
+            </button>
+          </nav>
+        )}
+      </header>
+
+      <aside className="hidden lg:block fixed left-0 top-0 bottom-0 w-64 bg-white border-r overflow-y-auto">
+        <div className="flex flex-col h-full">
+          <div className="p-6 border-b">
+            <Link to="/admin" className="flex items-center gap-2">
+              <Leaf className="size-8 text-primary" />
+              <div>
+                <div className="text-xl font-semibold">NutriFlow</div>
+                <div className="text-xs text-muted-foreground">Admin Panel</div>
+              </div>
+            </Link>
+          </div>
+          <nav className="flex-1 p-4 space-y-1">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
+                    isActive(item.path)
+                      ? "bg-primary text-primary-foreground"
+                      : "text-foreground hover:bg-muted"
+                  }`}
+                >
+                  <Icon className="size-5" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+          <div className="p-4 border-t">
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={handleLogout}
+            >
+              <LogOut className="size-5 mr-3" />
+              Logout
+            </Button>
+          </div>
+        </div>
+      </aside>
+
+      <main className="lg:ml-64 min-h-screen">
+        <div className="p-4 lg:p-8">
+          <Outlet />
+        </div>
+      </main>
+    </div>
+  );
+}
