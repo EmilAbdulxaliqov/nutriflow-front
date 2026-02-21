@@ -7,26 +7,23 @@ import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 import { useTranslation } from "react-i18next";
 import { LANGUAGES, type LangCode } from "../../../i18n";
 import i18n from "../../../i18n";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 
 function LanguageSwitcher() {
-  const currentLang = i18n.language?.slice(0, 2) as LangCode;
+  const currentLang = (i18n.language?.slice(0, 2) ?? "en") as LangCode;
   return (
-    <div className="flex items-center gap-1 border rounded-sm p-1">
-      {LANGUAGES.map((lang) => (
-        <button
-          key={lang.code}
-          onClick={() => i18n.changeLanguage(lang.code)}
-          className={`px-2 py-0.5 rounded-lg text-sm font-medium transition-colors ${
-            currentLang === lang.code
-              ? "bg-primary text-primary-foreground"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-          title={lang.nativeLabel}
-        >
-          {lang.label}
-        </button>
-      ))}
-    </div>
+    <Select value={currentLang} onValueChange={(val) => i18n.changeLanguage(val)}>
+      <SelectTrigger className="w-[80px] h-8 text-sm">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {LANGUAGES.map((lang) => (
+          <SelectItem key={lang.code} value={lang.code}>
+            {lang.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 
