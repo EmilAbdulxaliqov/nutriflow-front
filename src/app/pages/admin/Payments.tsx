@@ -179,9 +179,9 @@ export default function AdminPayments() {
             <>
               <SheetHeader>
                 <SheetTitle>Payment Details</SheetTitle>
-                <SheetDescription className="font-mono">{selectedPayment.transactionId}</SheetDescription>
+                <SheetDescription className="font-mono text-xs break-all">{selectedPayment.transactionId}</SheetDescription>
               </SheetHeader>
-              <div className="mt-6 space-y-4">
+              <div className="mt-6 space-y-4 px-5">
                 <div>
                   <p className="text-sm text-muted-foreground">Amount</p>
                   <p className="text-lg font-semibold">

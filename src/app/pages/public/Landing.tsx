@@ -361,8 +361,8 @@ export default function Landing() {
                 <CardTitle className="text-2xl">Monthly Premium</CardTitle>
                 <CardDescription>Complete nutrition & delivery service</CardDescription>
                 <div className="mt-4">
-                  <span className="text-4xl font-bold">$299</span>
-                  <span className="text-muted-foreground">/month</span>
+                  <span className="text-4xl font-bold">1500</span>
+                  <span className="text-muted-foreground"> AZN/month</span>
                 </div>
               </CardHeader>
               <CardContent>

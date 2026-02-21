@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
@@ -7,53 +7,205 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { SubscriptionStatusBadge } from "../../components/StatusBadges";
-import { AlertCircle, Save } from "lucide-react";
+import { AlertCircle, CreditCard, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
+import { Skeleton } from "../../components/ui/skeleton";
+import {
+  getPersonalInfo,
+  getSubscriptionInfo,
+  updateProfile,
+  cancelSubscription,
+  createCheckoutSession,
+  extractErrorMessage,
+  type PersonalInfo,
+  type SubscriptionInfo,
+  type UpdateProfilePayload,
+  type GoalType,
+} from "../../services/userService";
 
-const mockProfile = {
-  firstName: "John",
-  lastName: "Doe",
-  email: "john.doe@example.com",
-  phoneNumber: "+1 (555) 123-4567",
-  city: "New York",
-  district: "Manhattan",
-  addressDetails: "123 Park Avenue, Apt 4B",
-  deliveryNotes: "Ring doorbell twice",
-  weight: "75",
-  height: "175",
-  goal: "weight_loss",
-  restrictions: "Lactose intolerant, no shellfish",
-  notes: "Prefer low-sodium meals",
-  subscriptionStatus: "ACTIVE" as const,
-  nextRenewal: "2026-03-17",
+const PHONE_PATTERN = /^\+?[\d\s\-().]{7,20}$/;
+const DELIVERY_NOTES_MAX = 500;
+
+type FormData = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  city: string;
+  district: string;
+  addressDetails: string;
+  deliveryNotes: string;
+  weight: string;
+  height: string;
+  goal: string;
+  restrictions: string;
+  notes: string;
+  password: string;
+};
+
+const EMPTY_FORM: FormData = {
+  firstName: "",
+  lastName: "",
+  email: "",
+  phoneNumber: "",
+  city: "",
+  district: "",
+  addressDetails: "",
+  deliveryNotes: "",
+  weight: "",
+  height: "",
+  goal: "",
+  restrictions: "",
+  notes: "",
+  password: "",
 };
 
 export default function UserProfile() {
-  const [formData, setFormData] = useState(mockProfile);
+  const [formData, setFormData] = useState<FormData>(EMPTY_FORM);
+  const [originalData, setOriginalData] = useState<FormData>(EMPTY_FORM);
+  const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo | null>(null);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [formErrors, setFormErrors] = useState<Partial<Record<string, string>>>({});
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [subscribeLoading, setSubscribeLoading] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setDataLoading(true);
+    Promise.all([
+      getPersonalInfo(),
+      getSubscriptionInfo(),
+    ])
+      .then(([personal, sub]: [PersonalInfo, SubscriptionInfo]) => {
+        const loaded: FormData = {
+          firstName: personal.firstName ?? "",
+          lastName: personal.lastName ?? "",
+          email: personal.email ?? "",
+          phoneNumber: personal.phoneNumber ?? "",
+          city: personal.city ?? "",
+          district: personal.district ?? "",
+          addressDetails: personal.addressDetails ?? "",
+          deliveryNotes: personal.deliveryNotes ?? "",
+          weight: personal.weight != null ? String(personal.weight) : "",
+          height: personal.height != null ? String(personal.height) : "",
+          goal: personal.goal ?? "",
+          restrictions: personal.restrictions ?? "",
+          notes: personal.notes ?? "",
+          password: "",
+        };
+        setFormData(loaded);
+        setOriginalData(loaded);
+        setSubscriptionInfo(sub);
+      })
+      .catch((err) => toast.error(extractErrorMessage(err, "Failed to load profile.")))
+      .finally(() => setDataLoading(false));
+  }, []);
 
   const handleChange = (field: string, value: string) => {
-    setFormData({ ...formData, [field]: value });
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    if (formErrors[field]) setFormErrors((prev) => ({ ...prev, [field]: undefined }));
+  };
+
+  const validateForm = (): boolean => {
+    const errors: Partial<Record<string, string>> = {};
+    if (formData.phoneNumber && !PHONE_PATTERN.test(formData.phoneNumber)) {
+      errors.phoneNumber = "Please enter a valid phone number (7-20 digits).";
+    }
+    if (formData.deliveryNotes.length > DELIVERY_NOTES_MAX) {
+      errors.deliveryNotes = `Delivery notes must be ${DELIVERY_NOTES_MAX} characters or fewer.`;
+    }
+    if (formData.password && formData.password.length < 8) {
+      errors.password = "Password must be at least 8 characters.";
+    }
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleSave = () => {
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      toast.success("Profile updated successfully!");
-    }, 1000);
+    if (!validateForm()) return;
+    const payload: UpdateProfilePayload = {};
+    if (formData.firstName !== originalData.firstName) payload.firstName = formData.firstName;
+    if (formData.lastName !== originalData.lastName) payload.lastName = formData.lastName;
+    if (formData.phoneNumber !== originalData.phoneNumber) payload.phoneNumber = formData.phoneNumber;
+    if (formData.password) payload.password = formData.password;
+    if (formData.city !== originalData.city) payload.city = formData.city;
+    if (formData.district !== originalData.district) payload.district = formData.district;
+    if (formData.addressDetails !== originalData.addressDetails) payload.addressDetails = formData.addressDetails;
+    if (formData.deliveryNotes !== originalData.deliveryNotes) payload.deliveryNotes = formData.deliveryNotes;
+    if (formData.weight !== originalData.weight && formData.weight) payload.weight = Number(formData.weight);
+    if (formData.height !== originalData.height && formData.height) payload.height = Number(formData.height);
+    if (formData.goal !== originalData.goal && formData.goal) payload.goal = formData.goal as GoalType;
+    if (formData.restrictions !== originalData.restrictions) payload.restrictions = formData.restrictions;
+    if (formData.notes !== originalData.notes) payload.notes = formData.notes;
+    if (Object.keys(payload).length === 0) {
+      toast.info("No changes to save.");
+      return;
+    }
+    setSaveLoading(true);
+    updateProfile(payload)
+      .then(() => {
+        toast.success("Profile updated successfully!");
+        setOriginalData({ ...formData, password: "" });
+        setFormData((prev) => ({ ...prev, password: "" }));
+      })
+      .catch((err) => toast.error(extractErrorMessage(err, "Failed to update profile.")))
+      .finally(() => setSaveLoading(false));
   };
 
   const handleCancelSubscription = () => {
-    toast.success("Subscription cancelled. Active until " + mockProfile.nextRenewal);
-    setCancelDialogOpen(false);
+    setCancelLoading(true);
+    cancelSubscription()
+      .then(() => {
+        toast.success(`Subscription cancelled. Active until ${subscriptionInfo?.endDate ?? "the end of the period"}.`);
+        setCancelDialogOpen(false);
+        getSubscriptionInfo().then(setSubscriptionInfo).catch(() => {});
+      })
+      .catch((err) => toast.error(extractErrorMessage(err, "Failed to cancel subscription.")))
+      .finally(() => setCancelLoading(false));
   };
 
-  const bmi = formData.height && formData.weight 
-    ? (Number(formData.weight) / Math.pow(Number(formData.height) / 100, 2)).toFixed(1)
-    : null;
+  const handleSubscribe = () => {
+    setSubscribeLoading(true);
+    createCheckoutSession()
+      .then(({ checkoutUrl }) => {
+        // Redirect to Stripe-hosted checkout
+        window.location.href = checkoutUrl;
+      })
+      .catch((err) => {
+        toast.error(extractErrorMessage(err, "Failed to start checkout. Please try again."));
+        setSubscribeLoading(false);
+      });
+  };
+
+  const bmi =
+    formData.height && formData.weight
+      ? (Number(formData.weight) / Math.pow(Number(formData.height) / 100, 2)).toFixed(1)
+      : null;
+
+  // ── Loading skeleton ───────────────────────────────────────────────────
+  if (dataLoading) {
+    return (
+      <div className="space-y-6 max-w-4xl">
+        <div>
+          <Skeleton className="h-8 w-24" />
+          <Skeleton className="h-4 w-64 mt-2" />
+        </div>
+        <Skeleton className="h-10 w-96" />
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-48" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -68,7 +220,7 @@ export default function UserProfile() {
         <TabsList>
           <TabsTrigger value="personal">Personal Info</TabsTrigger>
           <TabsTrigger value="health">Health Data</TabsTrigger>
-          <TabsTrigger value="delivery">Delivery</TabsTrigger>
+          {/* <TabsTrigger value="delivery">Delivery</TabsTrigger> */}
           <TabsTrigger value="subscription">Subscription</TabsTrigger>
         </TabsList>
 
@@ -104,7 +256,8 @@ export default function UserProfile() {
                   id="email"
                   type="email"
                   value={formData.email}
-                  onChange={(e) => handleChange("email", e.target.value)}
+                  readOnly
+                  className="bg-muted cursor-not-allowed"
                 />
               </div>
               <div className="space-y-2">
@@ -115,18 +268,25 @@ export default function UserProfile() {
                   value={formData.phoneNumber}
                   onChange={(e) => handleChange("phoneNumber", e.target.value)}
                 />
+                {formErrors.phoneNumber && (
+                  <p className="text-xs text-destructive">{formErrors.phoneNumber}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Change Password</Label>
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Enter new password"
+                  placeholder="Enter new password (min 8 characters)"
+                  value={formData.password}
+                  onChange={(e) => handleChange("password", e.target.value)}
                 />
+                {formErrors.password && (
+                  <p className="text-xs text-destructive">{formErrors.password}</p>
+                )}
               </div>
-              <Button onClick={handleSave} disabled={loading}>
-                <Save className="size-4 mr-2" />
-                {loading ? "Saving..." : "Save Changes"}
+              <Button onClick={handleSave} disabled={saveLoading}>
+                {saveLoading ? <><Loader2 className="size-4 mr-2 animate-spin" />Saving...</> : <><Save className="size-4 mr-2" />Save Changes</>}
               </Button>
             </CardContent>
           </Card>
@@ -167,17 +327,14 @@ export default function UserProfile() {
               )}
               <div className="space-y-2">
                 <Label htmlFor="goal">Goal</Label>
-                <Select value={formData.goal} onValueChange={(value) => handleChange("goal", value)}>
+              <Select value={formData.goal} onValueChange={(value) => handleChange("goal", value)}>
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Select your goal" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="weight_loss">Weight Loss</SelectItem>
-                    <SelectItem value="weight_gain">Weight Gain</SelectItem>
-                    <SelectItem value="muscle_gain">Muscle Gain</SelectItem>
-                    <SelectItem value="maintenance">Maintenance</SelectItem>
-                    <SelectItem value="health_improvement">General Health Improvement</SelectItem>
-                    <SelectItem value="medical">Medical Dietary Requirements</SelectItem>
+                    <SelectItem value="LOSE">Lose Weight</SelectItem>
+                    <SelectItem value="GAIN">Gain Weight</SelectItem>
+                    <SelectItem value="MAINTAIN">Maintain Weight</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -199,9 +356,8 @@ export default function UserProfile() {
                   rows={3}
                 />
               </div>
-              <Button onClick={handleSave} disabled={loading}>
-                <Save className="size-4 mr-2" />
-                {loading ? "Saving..." : "Save Changes"}
+              <Button onClick={handleSave} disabled={saveLoading}>
+                {saveLoading ? <><Loader2 className="size-4 mr-2 animate-spin" />Saving...</> : <><Save className="size-4 mr-2" />Save Changes</>}
               </Button>
             </CardContent>
           </Card>
@@ -243,18 +399,24 @@ export default function UserProfile() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="deliveryNotes">Delivery Instructions</Label>
+                <Label htmlFor="deliveryNotes">
+                  Delivery Instructions
+                  <span className="ml-2 text-xs text-muted-foreground">{formData.deliveryNotes.length}/{DELIVERY_NOTES_MAX}</span>
+                </Label>
                 <Textarea
                   id="deliveryNotes"
                   value={formData.deliveryNotes}
                   onChange={(e) => handleChange("deliveryNotes", e.target.value)}
                   placeholder="e.g., Ring doorbell twice, leave at reception..."
                   rows={3}
+                  maxLength={DELIVERY_NOTES_MAX + 1}
                 />
+                {formErrors.deliveryNotes && (
+                  <p className="text-xs text-destructive">{formErrors.deliveryNotes}</p>
+                )}
               </div>
-              <Button onClick={handleSave} disabled={loading}>
-                <Save className="size-4 mr-2" />
-                {loading ? "Saving..." : "Save Changes"}
+              <Button onClick={handleSave} disabled={saveLoading}>
+                {saveLoading ? <><Loader2 className="size-4 mr-2 animate-spin" />Saving...</> : <><Save className="size-4 mr-2" />Save Changes</>}
               </Button>
             </CardContent>
           </Card>
@@ -268,42 +430,84 @@ export default function UserProfile() {
               <CardDescription>Manage your NutriFlow subscription</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-2">Plan</p>
-                  <p className="font-semibold text-lg">Monthly Premium</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-2">Status</p>
-                  <SubscriptionStatusBadge status={formData.subscriptionStatus} />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-2">Next Renewal</p>
-                  <p className="font-semibold">
-                    {new Date(formData.nextRenewal).toLocaleDateString()}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-2">Price</p>
-                  <p className="font-semibold">$299/month</p>
-                </div>
-              </div>
-
-              <div className="pt-6 border-t">
-                <div className="flex items-start gap-3 p-4 bg-destructive/10 rounded-lg mb-4">
-                  <AlertCircle className="size-5 text-destructive flex-shrink-0 mt-0.5" />
+              {/* No subscription yet — or cancelled/expired: show subscribe CTA */}
+              {(!subscriptionInfo || subscriptionInfo.status === "INACTIVE" || subscriptionInfo.status === "CANCELLED" || subscriptionInfo.status === "EXPIRED") && (
+                <div className="rounded-lg border-2 border-dashed border-primary/30 p-6 text-center space-y-4">
+                  <div className="flex justify-center">
+                    <div className="size-14 rounded-full bg-primary-light flex items-center justify-center">
+                      <CreditCard className="size-7 text-primary" />
+                    </div>
+                  </div>
                   <div>
-                    <p className="text-sm font-medium">Cancel Subscription</p>
+                    <p className="font-semibold text-lg">No active subscription</p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Your subscription will remain active until {new Date(formData.nextRenewal).toLocaleDateString()}. 
-                      You can resubscribe at any time.
+                      Subscribe to NutriFlow Premium to get a personalized menu and daily meal deliveries.
                     </p>
                   </div>
+                  <div className="text-center">
+                    <span className="text-3xl font-bold">1500</span>
+                    <span className="text-lg text-muted-foreground"> AZN/month</span>
+                  </div>
+                  <Button onClick={handleSubscribe} disabled={subscribeLoading} size="lg" className="w-full">
+                    {subscribeLoading
+                      ? <><Loader2 className="size-4 mr-2 animate-spin" />Redirecting to payment...</>
+                      : <><CreditCard className="size-4 mr-2" />Subscribe Now</>}
+                  </Button>
                 </div>
-                <Button variant="destructive" onClick={() => setCancelDialogOpen(true)}>
-                  Cancel Subscription
-                </Button>
-              </div>
+              )}
+
+              {/* Has a subscription: show details */}
+              {subscriptionInfo && subscriptionInfo.status !== "INACTIVE" && (
+                <>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-2">Plan</p>
+                      <p className="font-semibold text-lg">{subscriptionInfo.planName}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-2">Status</p>
+                      <SubscriptionStatusBadge status={subscriptionInfo.status} />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-2">Next Renewal</p>
+                      <p className="font-semibold">
+                        {subscriptionInfo.endDate
+                          ? new Date(subscriptionInfo.endDate).toLocaleDateString()
+                          : "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-2">Days Remaining</p>
+                      <p className="font-semibold">{subscriptionInfo.daysRemaining} days</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-2">Price</p>
+                      <p className="font-semibold">{subscriptionInfo.price.toLocaleString()} AZN / month</p>
+                    </div>
+                  </div>
+
+                  {subscriptionInfo.status === "ACTIVE" && (
+                    <div className="pt-6 border-t">
+                      <div className="flex items-start gap-3 p-4 bg-destructive/10 rounded-lg mb-4">
+                        <AlertCircle className="size-5 text-destructive flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium">Cancel Subscription</p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Your subscription will remain active until{" "}
+                            {subscriptionInfo.endDate
+                              ? new Date(subscriptionInfo.endDate).toLocaleDateString()
+                              : "the end of the period"}.
+                            You can resubscribe at any time.
+                          </p>
+                        </div>
+                      </div>
+                      <Button variant="destructive" onClick={() => setCancelDialogOpen(true)}>
+                        Cancel Subscription
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -315,15 +519,18 @@ export default function UserProfile() {
           <DialogHeader>
             <DialogTitle>Cancel Subscription</DialogTitle>
             <DialogDescription>
-              Are you sure you want to cancel your subscription? You'll continue to have access until {new Date(mockProfile.nextRenewal).toLocaleDateString()}.
+              Are you sure you want to cancel your subscription? You'll continue to have access until{" "}
+              {subscriptionInfo?.endDate
+                ? new Date(subscriptionInfo.endDate).toLocaleDateString()
+                : "the end of the period"}.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setCancelDialogOpen(false)} disabled={cancelLoading}>
               Keep Subscription
             </Button>
-            <Button variant="destructive" onClick={handleCancelSubscription}>
-              Yes, Cancel
+            <Button variant="destructive" onClick={handleCancelSubscription} disabled={cancelLoading}>
+              {cancelLoading ? <><Loader2 className="size-4 mr-2 animate-spin" />Cancelling...</> : "Yes, Cancel"}
             </Button>
           </DialogFooter>
         </DialogContent>

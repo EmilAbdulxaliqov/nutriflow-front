@@ -1,6 +1,8 @@
 import { createBrowserRouter } from "react-router";
 import Landing from "./pages/public/Landing";
 import Pricing from "./pages/public/Pricing";
+import PaymentSuccess from "./pages/public/PaymentSuccess";
+import PaymentCancel from "./pages/public/PaymentCancel";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import VerifyOTP from "./pages/auth/VerifyOTP";
@@ -43,6 +45,14 @@ export const router = createBrowserRouter([
     Component: Pricing,
   },
   {
+    path: "/payment-success",
+    Component: PaymentSuccess,
+  },
+  {
+    path: "/payment-cancel",
+    Component: PaymentCancel,
+  },
+  {
     path: "/login",
     Component: Login,
   },
@@ -82,6 +92,7 @@ export const router = createBrowserRouter([
       { path: "patients/:id", Component: PatientProfile },
       { path: "menu-editor", Component: MenuEditor },
       { path: "menu-editor/:userId", Component: MenuEditor },
+      { path: "menu-editor/:userId/:batchId", Component: MenuEditor },
       { path: "profile", Component: DietitianProfile },
     ],
   },

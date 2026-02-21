@@ -7,10 +7,10 @@ import { Badge } from "../../components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { Label } from "../../components/ui/label";
 import { Skeleton } from "../../components/ui/skeleton";
-import { Search, Plus, ToggleLeft, ToggleRight, Trash2, Loader2, ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
+import { Search, Plus, ToggleLeft, ToggleRight, Trash2, Loader2, ChevronLeft, ChevronRight, Eye, EyeOff, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import {
-  getCaterers, createCaterer, toggleCatererStatus, deleteCaterer,
+  getCaterers, createCaterer, toggleCatererStatus, deleteCaterer, updateCaterer,
   type AdminCaterer,
 } from "../../services/adminService";
 
@@ -26,6 +26,13 @@ export default function AdminCaterers() {
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
   const [form, setForm] = useState({
+    name: "", email: "", phone: "", address: "", password: "",
+  });
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingCaterer, setEditingCaterer] = useState<AdminCaterer | null>(null);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
+  const [editForm, setEditForm] = useState({
     name: "", email: "", phone: "", address: "", password: "",
   });
   const fetchController = useRef<AbortController | null>(null);
@@ -60,14 +67,14 @@ export default function AdminCaterers() {
   );
 
   const handleToggle = async (id: number) => {
-    setCaterers((prev) => prev.map((c) => c.id === id ? { ...c, active: !c.active } : c));
+    setCaterers((prev) => prev.map((c) => c.id === id ? { ...c, status: c.status === "ACTIVE" ? "INACTIVE" : "ACTIVE" } : c));
     setRowLoadingMap((prev) => ({ ...prev, [id]: true }));
     try {
       await toggleCatererStatus(id);
       toast.success("Status updated");
       await fetchCaterers(currentPage);
     } catch (err: unknown) {
-      setCaterers((prev) => prev.map((c) => c.id === id ? { ...c, active: !c.active } : c));
+      setCaterers((prev) => prev.map((c) => c.id === id ? { ...c, status: c.status === "ACTIVE" ? "INACTIVE" : "ACTIVE" } : c));
       const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       toast.error(message ?? "Failed to update status");
     } finally {
@@ -81,6 +88,41 @@ export default function AdminCaterers() {
       toast.success("Caterer deleted");
       await fetchCaterers(currentPage);
     } catch { toast.error("Failed to delete caterer"); }
+  };
+
+  const openEditDialog = (caterer: AdminCaterer) => {
+    setEditingCaterer(caterer);
+    setEditForm({
+      name: caterer.name ?? "",
+      email: caterer.email ?? "",
+      phone: caterer.phone ?? "",
+      address: caterer.address ?? "",
+      password: "",
+    });
+    setShowEditPassword(false);
+    setEditDialogOpen(true);
+  };
+
+  const handleEditSubmit = async () => {
+    if (!editingCaterer) return;
+    setEditSubmitting(true);
+    try {
+      const payload: Record<string, string> = {};
+      if (editForm.name) payload.name = editForm.name;
+      if (editForm.email) payload.email = editForm.email;
+      if (editForm.phone) payload.phone = editForm.phone;
+      if (editForm.address) payload.address = editForm.address;
+      if (editForm.password) payload.password = editForm.password;
+      await updateCaterer(editingCaterer.id, payload);
+      toast.success("Caterer updated");
+      setEditDialogOpen(false);
+      fetchCaterers(currentPage);
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(message ?? "Failed to update caterer");
+    } finally {
+      setEditSubmitting(false);
+    }
   };
 
   const handleCreate = async () => {
@@ -142,8 +184,8 @@ export default function AdminCaterers() {
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Phone</TableHead>
-                  <TableHead>Active Deliviries</TableHead>
-                  <TableHead>Total Deliveries</TableHead>
+                  <TableHead>Today</TableHead>
+                  <TableHead>Total</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -170,19 +212,22 @@ export default function AdminCaterers() {
                       <TableCell className="font-medium">{caterer.name}</TableCell>
                       <TableCell className="text-muted-foreground">{caterer.email}</TableCell>
                       <TableCell className="text-muted-foreground">{caterer.phone ?? "—"}</TableCell>
-                      <TableCell>{caterer.activeDeliveries ?? 0}</TableCell>
+                      <TableCell>{caterer.todayDeliveries ?? 0}</TableCell>
                       <TableCell>{caterer.totalDeliveries ?? 0}</TableCell>
                       <TableCell>
-                        <Badge className={caterer.active ? "bg-success text-success-foreground" : ""}>
-                          {caterer.active ? "Active" : "Inactive"}
+                        <Badge className={caterer.status === "ACTIVE" ? "bg-success text-success-foreground" : ""}>
+                          {caterer.status === "ACTIVE" ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
-                          <Button variant="ghost" size="icon" disabled={rowLoadingMap[caterer.id] === true} onClick={() => handleToggle(caterer.id)}>
+                          <Button variant="ghost" size="icon" onClick={() => openEditDialog(caterer)}>
+                              <Pencil className="size-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" disabled={rowLoadingMap[caterer.id] === true} onClick={() => handleToggle(caterer.id)}>
                             {rowLoadingMap[caterer.id] ? (
                               <Loader2 className="size-4 animate-spin text-muted-foreground" />
-                            ) : caterer.active ? (
+                            ) : caterer.status === "ACTIVE" ? (
                               <ToggleRight className="size-4 text-success" />
                             ) : (
                               <ToggleLeft className="size-4 text-muted-foreground" />
@@ -217,6 +262,61 @@ export default function AdminCaterers() {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Caterer Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Caterer</DialogTitle>
+            <DialogDescription>Update catering partner details</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2 col-span-2">
+              <Label>Name</Label>
+              <Input placeholder="Nutriflow Kitchen" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input type="email" placeholder="caterer@nutriflow.com" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Phone</Label>
+              <Input type="tel" placeholder="+994 55-000-00-00" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
+            </div>
+            <div className="space-y-2 col-span-2">
+              <Label>Address</Label>
+              <Input placeholder="45 Nizami St, Baku" value={editForm.address} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} />
+            </div>
+            <div className="space-y-2 col-span-2">
+              <Label>New Password <span className="text-muted-foreground text-xs">(leave blank to keep current)</span></Label>
+              <div className="relative">
+                <Input
+                  type={showEditPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={editForm.password}
+                  onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3 text-muted-foreground"
+                  onClick={() => setShowEditPassword((v) => !v)}
+                >
+                  {showEditPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </Button>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleEditSubmit} disabled={editSubmitting}>
+              {editSubmitting ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Create Caterer Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>

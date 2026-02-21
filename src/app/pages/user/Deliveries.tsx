@@ -1,39 +1,88 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table";
 import { Button } from "../../components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../../components/ui/sheet";
 import { DeliveryStatusBadge } from "../../components/StatusBadges";
-import { Search, MapPin, Phone, Calendar as CalendarIcon, Clock } from "lucide-react";
-
-// Mock deliveries data
-const mockDeliveries = Array.from({ length: 15 }, (_, i) => ({
-  id: `DEL-${String(i + 1).padStart(4, "0")}`,
-  deliveryDate: new Date(2026, 1, i + 1).toISOString(),
-  dayNumber: i + 1,
-  status: ["DELIVERED", "DELIVERED", "DELIVERED", "ON_THE_WAY", "PENDING"][
-    Math.min(i, 4)
-  ] as "DELIVERED" | "ON_THE_WAY" | "PENDING",
-  district: "Manhattan",
-  estimatedTime: "2:30 PM",
-  fullAddress: "123 Park Avenue, Apt 4B, New York, NY 10016",
-  phone: "+1 (555) 123-4567",
-  meals: [
-    { type: "Breakfast", description: "Greek yogurt parfait with berries" },
-    { type: "Lunch", description: "Grilled chicken with quinoa" },
-    { type: "Dinner", description: "Baked salmon with vegetables" },
-    { type: "Snack", description: "Apple slices with almond butter" },
-  ],
-}));
+import { Search, MapPin, Phone, Calendar as CalendarIcon, Clock, Package, AlertCircle } from "lucide-react";
+import { Skeleton } from "../../components/ui/skeleton";
+import { toast } from "sonner";
+import { getDeliveries, extractErrorMessage, type Delivery } from "../../services/userService";
 
 export default function UserDeliveries() {
+  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedDelivery, setSelectedDelivery] = useState<typeof mockDeliveries[0] | null>(null);
+  const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
 
-  const filteredDeliveries = mockDeliveries.filter((delivery) =>
-    delivery.id.toLowerCase().includes(searchQuery.toLowerCase())
+  useEffect(() => {
+    setLoading(true);
+    setLoadError("");
+    getDeliveries()
+      .then(setDeliveries)
+      .catch((err) => {
+        const msg = extractErrorMessage(err, "Failed to load deliveries.");
+        setLoadError(msg);
+        toast.error(msg);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filteredDeliveries = deliveries.filter((delivery) =>
+    (delivery.clientFullName ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+    String(delivery.deliveryId).includes(searchQuery)
   );
+
+  // ── Loading skeleton ─────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <Skeleton className="h-8 w-36" />
+          <Skeleton className="h-4 w-52 mt-2" />
+        </div>
+        <div className="grid md:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="pb-3">
+                <Skeleton className="h-4 w-28" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-12" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card>
+          <CardHeader><Skeleton className="h-6 w-40" /></CardHeader>
+          <CardContent>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full mb-2" />
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // ── Error state ──────────────────────────────────────────────────────────
+  if (loadError) {
+    return (
+      <div className="space-y-6">
+        <div><h1>Deliveries</h1></div>
+        <Card className="border-destructive/50">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3 text-destructive">
+              <AlertCircle className="size-5 flex-shrink-0" />
+              <p className="text-sm">{loadError}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -53,7 +102,7 @@ export default function UserDeliveries() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockDeliveries.length}</div>
+            <div className="text-2xl font-bold">{deliveries.length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -64,7 +113,7 @@ export default function UserDeliveries() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-success">
-              {mockDeliveries.filter((d) => d.status === "DELIVERED").length}
+              {deliveries.filter((d) => d.status === "DELIVERED").length}
             </div>
           </CardContent>
         </Card>
@@ -76,7 +125,7 @@ export default function UserDeliveries() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-warning">
-              {mockDeliveries.filter((d) => d.status === "ON_THE_WAY").length}
+              {deliveries.filter((d) => d.status === "ON_THE_WAY").length}
             </div>
           </CardContent>
         </Card>
@@ -88,7 +137,7 @@ export default function UserDeliveries() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-muted-foreground">
-              {mockDeliveries.filter((d) => d.status === "PENDING").length}
+              {deliveries.filter((d) => d.status === "PENDING").length}
             </div>
           </CardContent>
         </Card>
@@ -115,7 +164,8 @@ export default function UserDeliveries() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>ID</TableHead>
+                  <TableHead>#</TableHead>
+                  <TableHead>Client</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Day</TableHead>
                   <TableHead>Status</TableHead>
@@ -127,14 +177,16 @@ export default function UserDeliveries() {
               <TableBody>
                 {filteredDeliveries.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      No deliveries found
+                    <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                      <Package className="size-8 mx-auto mb-2 opacity-40" />
+                      <p>{deliveries.length === 0 ? "No deliveries yet." : "No deliveries match your search."}</p>
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredDeliveries.map((delivery) => (
-                    <TableRow key={delivery.id}>
-                      <TableCell className="font-mono text-sm">{delivery.id}</TableCell>
+                    <TableRow key={delivery.deliveryId}>
+                      <TableCell className="font-mono text-sm">#{delivery.deliveryId}</TableCell>
+                      <TableCell>{delivery.clientFullName}</TableCell>
                       <TableCell>
                         {new Date(delivery.deliveryDate).toLocaleDateString()}
                       </TableCell>
@@ -143,7 +195,7 @@ export default function UserDeliveries() {
                         <DeliveryStatusBadge status={delivery.status} />
                       </TableCell>
                       <TableCell>{delivery.district}</TableCell>
-                      <TableCell>{delivery.estimatedTime}</TableCell>
+                      <TableCell>{delivery.estimatedTime ?? "—"}</TableCell>
                       <TableCell>
                         <Button
                           variant="ghost"
@@ -170,10 +222,11 @@ export default function UserDeliveries() {
               <SheetHeader>
                 <SheetTitle>Delivery Details</SheetTitle>
                 <SheetDescription>
-                  <span className="font-mono">{selectedDelivery.id}</span>
+                  <span className="font-mono">#{selectedDelivery.deliveryId}</span>
+                  {" — "}{selectedDelivery.clientFullName}
                 </SheetDescription>
               </SheetHeader>
-              <div className="mt-6 space-y-6">
+              <div className="mt-6 space-y-6 px-6">
                 {/* Status */}
                 <div>
                   <h4 className="text-sm font-medium mb-2">Status</h4>
@@ -201,13 +254,13 @@ export default function UserDeliveries() {
                     <div>
                       <div className="text-sm font-medium">Estimated Time</div>
                       <div className="text-sm text-muted-foreground">
-                        {selectedDelivery.estimatedTime}
+                        {selectedDelivery.estimatedTime ?? "Not yet assigned"}
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Address */}
+                {/* Address + Notes */}
                 <div>
                   <div className="flex items-start gap-3 mb-2">
                     <MapPin className="size-5 text-muted-foreground mt-0.5" />
@@ -218,6 +271,11 @@ export default function UserDeliveries() {
                   <p className="text-sm text-muted-foreground pl-8">
                     {selectedDelivery.fullAddress}
                   </p>
+                  {selectedDelivery.deliveryNotes && (
+                    <p className="text-sm text-muted-foreground pl-8 mt-1 italic">
+                      Note: {selectedDelivery.deliveryNotes}
+                    </p>
+                  )}
                 </div>
 
                 {/* Phone */}
@@ -236,62 +294,13 @@ export default function UserDeliveries() {
                 {/* Meals */}
                 <div>
                   <h4 className="text-sm font-medium mb-3">Meals Included</h4>
-                  <div className="space-y-3">
+                  <div className="space-y-3 mb-2">
                     {selectedDelivery.meals.map((meal, index) => (
                       <div key={index} className="p-3 bg-muted rounded-lg">
                         <div className="font-medium text-sm">{meal.type}</div>
                         <div className="text-sm text-muted-foreground mt-1">
                           {meal.description}
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Status Timeline */}
-                <div>
-                  <h4 className="text-sm font-medium mb-3">Delivery Timeline</h4>
-                  <div className="space-y-3">
-                    {[
-                      { label: "Pending", completed: true },
-                      {
-                        label: "In Progress",
-                        completed:
-                          selectedDelivery.status !== "PENDING",
-                      },
-                      {
-                        label: "Ready",
-                        completed:
-                          selectedDelivery.status === "ON_THE_WAY" ||
-                          selectedDelivery.status === "DELIVERED",
-                      },
-                      {
-                        label: "On the Way",
-                        completed: selectedDelivery.status === "DELIVERED",
-                        current: selectedDelivery.status === "ON_THE_WAY",
-                      },
-                      {
-                        label: "Delivered",
-                        completed: selectedDelivery.status === "DELIVERED",
-                      },
-                    ].map((step) => (
-                      <div key={step.label} className="flex items-center gap-3">
-                        <div
-                          className={`size-3 rounded-full ${
-                            step.completed
-                              ? "bg-success"
-                              : "bg-muted border-2 border-muted-foreground"
-                          } ${step.current ? "ring-4 ring-success/20" : ""}`}
-                        />
-                        <span
-                          className={`text-sm ${
-                            step.completed
-                              ? "text-foreground font-medium"
-                              : "text-muted-foreground"
-                          }`}
-                        >
-                          {step.label}
-                        </span>
                       </div>
                     ))}
                   </div>

@@ -1,26 +1,37 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-
-const mockStats = {
-  totalOrders: 150,
-  inProgress: 12,
-  ready: 8,
-  onTheWay: 15,
-  delivered: 110,
-  failed: 5,
-};
-
-const mockChartData = [
-  { name: "Mon", delivered: 18, failed: 0 },
-  { name: "Tue", delivered: 22, failed: 1 },
-  { name: "Wed", delivered: 20, failed: 0 },
-  { name: "Thu", delivered: 24, failed: 2 },
-  { name: "Fri", delivered: 26, failed: 1 },
-  { name: "Sat", delivered: 0, failed: 0 },
-  { name: "Sun", delivered: 0, failed: 1 },
-];
+import { Skeleton } from "../../components/ui/skeleton";
+import { AlertCircle } from "lucide-react";
+import { toast } from "sonner";
+import { getCatererStats, extractErrorMessage, type CatererStats } from "../../services/catererService";
 
 export default function CatererStats() {
+  const [stats, setStats] = useState<CatererStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    getCatererStats()
+      .then(setStats)
+      .catch((err) => {
+        const msg = extractErrorMessage(err, "Failed to load stats.");
+        setLoadError(msg);
+        toast.error(msg);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div><Skeleton className="h-8 w-36" /><Skeleton className="h-4 w-52 mt-2" /></div>
+        <div className="grid md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-24" />)}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -28,14 +39,29 @@ export default function CatererStats() {
         <p className="text-muted-foreground mt-1">Your delivery performance overview</p>
       </div>
 
+      {loadError && (
+        <div className="flex items-center gap-3 p-4 rounded-lg border border-destructive/50 text-destructive">
+          <AlertCircle className="size-5 flex-shrink-0" />
+          <p className="text-sm">{loadError}</p>
+        </div>
+      )}
+
       {/* Stats Cards */}
-      <div className="grid md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid md:grid-cols-3 lg:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Orders</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockStats.totalOrders}</div>
+            <div className="text-2xl font-bold">{stats?.totalDeliveries ?? 0}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Pending</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-muted-foreground">{stats?.pendingDeliveries ?? 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -43,23 +69,7 @@ export default function CatererStats() {
             <CardTitle className="text-sm font-medium text-muted-foreground">In Progress</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-info">{mockStats.inProgress}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Ready</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-warning">{mockStats.ready}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">On the Way</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">{mockStats.onTheWay}</div>
+            <div className="text-2xl font-bold text-warning">{stats?.inProgressDeliveries ?? 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -67,7 +77,7 @@ export default function CatererStats() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Delivered</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-success">{mockStats.delivered}</div>
+            <div className="text-2xl font-bold text-success">{stats?.deliveredDeliveries ?? 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -75,31 +85,11 @@ export default function CatererStats() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Failed</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-destructive">{mockStats.failed}</div>
+            <div className="text-2xl font-bold text-destructive">{stats?.failedDeliveries ?? 0}</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Weekly Performance</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={mockChartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="delivered" fill="hsl(var(--success))" name="Delivered" />
-                <Bar dataKey="failed" fill="hsl(var(--destructive))" name="Failed" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

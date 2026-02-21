@@ -28,9 +28,9 @@ export default function AdminMenus() {
   }, []);
 
   const filtered = menus.filter(m =>
-    String(m.id ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+    String(m.menuId ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
     m.batchId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    m.userName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    m.userFullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     m.userEmail?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -62,6 +62,7 @@ export default function AdminMenus() {
                   <TableHead>Batch ID</TableHead>
                   <TableHead>User</TableHead>
                   <TableHead>Dietitian</TableHead>
+                  <TableHead>Caterer</TableHead>
                   <TableHead>Month</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
@@ -84,11 +85,12 @@ export default function AdminMenus() {
                   </TableRow>
                 ) : (
                   filtered.map((menu) => (
-                    <TableRow key={menu.id ?? menu.batchId}>
-                      <TableCell className="font-mono text-sm">{menu.id ?? "—"}</TableCell>
+                    <TableRow key={menu.menuId ?? menu.batchId}>
+                      <TableCell className="font-mono text-sm">{menu.menuId ?? "—"}</TableCell>
                       <TableCell className="font-mono text-sm">{menu.batchId}</TableCell>
-                      <TableCell>{menu.userName ?? menu.userEmail ?? "—"}</TableCell>
-                      <TableCell>{menu.dietitianName ?? "—"}</TableCell>
+                      <TableCell>{menu.userFullName ?? menu.userEmail ?? "—"}</TableCell>
+                      <TableCell>{menu.dietitianFullName ?? "—"}</TableCell>
+                      <TableCell>{menu.catererFullName ?? "—"}</TableCell>
                       <TableCell>{menu.month ?? "—"}</TableCell>
                       <TableCell>
                         <MenuStatusBadge status={menu.status as Parameters<typeof MenuStatusBadge>[0]["status"]} />

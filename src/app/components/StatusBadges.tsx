@@ -1,7 +1,7 @@
 import { Badge } from "../components/ui/badge";
 
-type SubscriptionStatus = "ACTIVE" | "EXPIRED" | "CANCELLED";
-type MenuStatus = "DRAFT" | "SUBMITTED" | "PREPARING" | "APPROVED" | "REJECTED" | "CANCELLED";
+type SubscriptionStatus = "ACTIVE" | "EXPIRED" | "CANCELLED" | "INACTIVE";
+type MenuStatus = "DRAFT" | "SUBMITTED" | "PREPARING" | "APPROVED" | "REJECTED" | "CANCELLED" | "PENDING" | "READY";
 type DeliveryStatus = "PENDING" | "IN_PROGRESS" | "READY" | "ON_THE_WAY" | "DELIVERED" | "FAILED";
 type UserLifecycle = "REGISTERED" | "VERIFIED" | "DATA_SUBMITTED" | "ACTIVE" | "EXPIRED";
 
@@ -10,11 +10,12 @@ export function SubscriptionStatusBadge({ status }: { status: SubscriptionStatus
     ACTIVE: { variant: "default", className: "bg-success text-success-foreground" },
     EXPIRED: { variant: "secondary" },
     CANCELLED: { variant: "destructive" },
+    INACTIVE: { variant: "outline" },
   };
 
-  const config = variants[status];
+  const config = variants[status] ?? { variant: "outline" as const };
   return (
-    <Badge variant={config.variant} className={config.className}>
+    <Badge variant={config.variant} className={(config as any).className}>
       {status}
     </Badge>
   );
@@ -28,11 +29,13 @@ export function MenuStatusBadge({ status }: { status: MenuStatus }) {
     APPROVED: { variant: "default", className: "bg-success text-success-foreground" },
     REJECTED: { variant: "destructive" },
     CANCELLED: { variant: "secondary" },
+    PENDING: { variant: "outline" },
+    READY: { variant: "secondary", className: "bg-info-light text-info" },
   };
 
-  const config = variants[status];
+  const config = variants[status] ?? { variant: "outline" as const };
   return (
-    <Badge variant={config.variant} className={config.className}>
+    <Badge variant={config.variant} className={(config as any).className}>
       {status}
     </Badge>
   );
@@ -48,9 +51,9 @@ export function DeliveryStatusBadge({ status }: { status: DeliveryStatus }) {
     FAILED: { variant: "destructive" },
   };
 
-  const config = variants[status];
+  const config = variants[status] ?? { variant: "outline" as const };
   return (
-    <Badge variant={config.variant} className={config.className}>
+    <Badge variant={config.variant} className={(config as any).className}>
       {status.replace(/_/g, " ")}
     </Badge>
   );
@@ -65,10 +68,10 @@ export function UserLifecycleBadge({ status }: { status: UserLifecycle }) {
     EXPIRED: { variant: "secondary" },
   };
 
-  const config = variants[status];
+  const config = variants[status] ?? { variant: "outline" as const };
   return (
-    <Badge variant={config.variant} className={config.className}>
-      {status.replace(/_/g, " ")}
+    <Badge variant={config.variant} className={(config as any).className}>
+      {(status ?? "").replace(/_/g, " ")}
     </Badge>
   );
 }

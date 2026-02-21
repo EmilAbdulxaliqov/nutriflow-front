@@ -49,22 +49,30 @@ export interface AdminDietitian {
 }
 
 export interface AdminCaterer {
-  id: number; 
+  id: number;
   name: string;
   email: string;
   phone?: string;
-  activeDeliveries?: number;
+  address?: string;
+  status: string;
   totalDeliveries?: number;
-  active: boolean;
+  deliveredCount?: number;
+  failedCount?: number;
+  inProgressCount?: number;
+  todayDeliveries?: number;
+  todayDelivered?: number;
+  todayFailed?: number;
+  todayInProgress?: number;
   createdAt?: string;
 }
 
 export interface AdminMenu {
-  id: number;
+  menuId: number;
   batchId: string;
   userEmail?: string;
-  userName?: string;
-  dietitianName?: string;
+  userFullName?: string;
+  dietitianFullName?: string;
+  catererFullName?: string;
   month?: string;
   status: string;
   createdAt?: string;
@@ -182,6 +190,15 @@ export const searchDietitians = (query: string, page = 0, size = 10) =>
     params: { query, page, size, sort: 'id,desc' },
   });
 
+export const updateDietitian = (id: number, payload: {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  password?: string;
+  phoneNumber?: string;
+  specialization?: string;
+}) => axiosClient.put(`${BASE}/dietitians/${id}`, payload);
+
 export const toggleDietitianStatus = (id: number) =>
   axiosClient.patch(`${BASE}/dietitians/${id}/toggle-status`);
 
@@ -203,6 +220,14 @@ export const getCaterers = (page = 0, size = 10) =>
 
 export const getCatererById = (id: number) =>
   axiosClient.get<AdminCaterer>(`${BASE}/caterers/${id}`);
+
+export const updateCaterer = (id: number, payload: {
+  name?: string;
+  phone?: string;
+  address?: string;
+  email?: string;
+  password?: string;
+}) => axiosClient.put(`${BASE}/caterers/${id}`, payload);
 
 export const toggleCatererStatus = (id: number) =>
   axiosClient.patch(`${BASE}/caterers/${id}/toggle-status`);

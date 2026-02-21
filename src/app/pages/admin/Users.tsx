@@ -251,7 +251,7 @@ export default function AdminUsers() {
                           >
                             {rowLoadingMap[user.userId] ? (
                               <Loader2 className="size-4 animate-spin text-muted-foreground" />
-                            ) : user.status === 'ACTIVE' ? (
+                            ) : user.status !== 'EXPIRED' ? (
                               <ToggleRight className="size-4 text-success" />
                             ) : (
                               <ToggleLeft className="size-4 text-muted-foreground" />
@@ -262,6 +262,15 @@ export default function AdminUsers() {
                             size="icon"
                             onClick={() => {
                               setSelectedUser(user);
+                              // Pre-fill with existing assignments
+                              const matchedDietitian = dietitians.find(
+                                (d) => `${d.firstName} ${d.lastName}`.trim() === user.dietitianFullName
+                              );
+                              const matchedCaterer = caterers.find(
+                                (c) => c.name === user.catererFullName
+                              );
+                              setAssignDietitianId(matchedDietitian ? String(matchedDietitian.id) : "");
+                              setAssignCatererId(matchedCaterer ? String(matchedCaterer.id) : "");
                               setAssignDialogOpen(true);
                             }}
                           >

@@ -1,16 +1,34 @@
+import { useState } from "react";
 import { Link } from "react-router";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
-import { Check, Leaf, ArrowLeft } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { createCheckoutSession, extractErrorMessage } from "../../services/userService";
+import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 
 export default function Pricing() {
+  const [loading, setLoading] = useState(false);
+  const isLoggedIn = !!localStorage.getItem("accessToken");
+
+  const handleSubscribe = () => {
+    setLoading(true);
+    createCheckoutSession()
+      .then(({ checkoutUrl }) => {
+        window.location.href = checkoutUrl;
+      })
+      .catch((err) => {
+        toast.error(extractErrorMessage(err, "Failed to start checkout. Please try again."));
+        setLoading(false);
+      });
+  };
   return (
     <div className="min-h-screen bg-gradient-to-b from-primary-lighter to-white">
       {/* Header */}
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <Leaf className="size-8 text-primary" />
+            <ImageWithFallback src={'src/assets/imgs/NutriFlow-white3.svg'} alt="NutriFlow Logo" className="size-10" />
             <span className="text-xl font-semibold">NutriFlow</span>
           </Link>
           <div className="flex items-center gap-3">
@@ -25,14 +43,7 @@ export default function Pricing() {
       </header>
 
       {/* Pricing Section */}
-      <section className="container mx-auto px-4 py-20">
-        <Button variant="ghost" asChild className="mb-8">
-          <Link to="/">
-            <ArrowLeft className="size-4 mr-2" />
-            Back to home
-          </Link>
-        </Button>
-
+      <section className="container mx-auto px-4 py-5">
         <div className="max-w-3xl mx-auto text-center mb-16">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">Simple, transparent pricing</h1>
           <p className="text-lg text-muted-foreground">
@@ -40,52 +51,49 @@ export default function Pricing() {
           </p>
         </div>
 
-        <Card className="max-w-2xl mx-auto border-2 border-primary shadow-lg">
-          <CardHeader className="text-center">
-            <div className="inline-flex items-center gap-2 bg-primary-light text-primary px-4 py-2 rounded-full mb-4 mx-auto">
-              <span className="text-sm font-medium">Most Popular</span>
-            </div>
-            <CardTitle className="text-3xl">Monthly Premium</CardTitle>
-            <CardDescription className="text-base">Complete nutrition & delivery service</CardDescription>
-            <div className="mt-6">
-              <span className="text-5xl font-bold">$299</span>
-              <span className="text-xl text-muted-foreground">/month</span>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-8">
-            <div>
-              <h3 className="font-semibold mb-4">What's included:</h3>
-              <ul className="space-y-3">
-                {[
-                  "Personalized monthly menu (30 days)",
-                  "Initial consultation with certified dietitian",
-                  "Custom meal plan based on your health goals",
-                  "Daily meal delivery to your address",
-                  "Real-time delivery tracking",
-                  "Detailed macro & calorie breakdown",
-                  "Accommodation for dietary restrictions",
-                  "Monthly menu review and adjustments",
-                  "24/7 customer support",
-                  "Cancel anytime",
-                ].map((feature) => (
-                  <li key={feature} className="flex items-start gap-3">
-                    <Check className="size-5 text-primary flex-shrink-0 mt-0.5" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="pt-6 border-t space-y-4">
-              <Button className="w-full" size="lg" asChild>
-                <Link to="/register">Subscribe now</Link>
-              </Button>
-              <p className="text-sm text-center text-muted-foreground">
-                After registration, you'll submit your health data and a dietitian will prepare your menu within 24-48 hours.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+            <Card className="max-w-md mx-auto border-2 border-primary transition-all hover:shadow-xl hover:-translate-y-1">
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl">Monthly Premium</CardTitle>
+                <CardDescription>Complete nutrition & delivery service</CardDescription>
+                <div className="mt-4">
+                  <span className="text-4xl font-bold">1500</span>
+                  <span className="text-muted-foreground"> AZN /month</span>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3 mb-6">
+                  {[
+                    "Personalized monthly menu",
+                    "Certified dietitian consultation",
+                    "Daily meal delivery (30 days)",
+                    "Real-time delivery tracking",
+                    "Macro & calorie tracking",
+                    "24/7 customer support",
+                  ].map((feature) => (
+                    <li key={feature} className="flex items-center gap-3">
+                      <Check className="size-5 text-primary flex-shrink-0" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                {isLoggedIn ? (
+                  <Button className="w-full" size="lg" onClick={handleSubscribe} disabled={loading}>
+                    {loading ? (
+                      <>
+                        <Loader2 className="size-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      "Subscribe Now"
+                    )}
+                  </Button>
+                ) : (
+                  <Button className="w-full" size="lg" asChild>
+                    <Link to="/register">Get started</Link>
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
 
         <div className="max-w-2xl mx-auto mt-16">
           <h2 className="text-2xl font-bold mb-8 text-center">How billing works</h2>
@@ -138,8 +146,8 @@ export default function Pricing() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-2">
-              <Leaf className="size-6" />
-              <span className="font-semibold">NutriFlow</span>
+              <ImageWithFallback src={'src/assets/imgs/NutriFlow-black3.svg'} alt="NutriFlow Logo" className="size-10" />
+              <span className="font-semibold text-primary">NutriFlow</span>
             </div>
             <p className="text-sm opacity-80">© 2026 NutriFlow. All rights reserved.</p>
           </div>

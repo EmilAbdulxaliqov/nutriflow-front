@@ -2,11 +2,13 @@ import { Outlet, Link, useLocation, useNavigate } from "react-router";
 import { Button } from "../components/ui/button";
 import { Leaf, Package, BarChart3, User, LogOut, Menu, X } from "lucide-react";
 import { useState } from "react";
+import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 
 export default function CatererLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const fullName = localStorage.getItem("userFullName") ?? "";
 
   const navItems = [
     { path: "/caterer", label: "Today", icon: Package },
@@ -15,6 +17,11 @@ export default function CatererLayout() {
   ];
 
   const handleLogout = () => {
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("userFullName");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("userEmail");
     navigate("/login");
   };
 
@@ -30,7 +37,7 @@ export default function CatererLayout() {
       <header className="lg:hidden bg-white border-b sticky top-0 z-50">
         <div className="flex items-center justify-between px-4 py-3">
           <Link to="/caterer" className="flex items-center gap-2">
-            <Leaf className="size-6 text-primary" />
+            <ImageWithFallback src={'src/assets/imgs/NutriFlow-white3.svg'} alt="NutriFlow Logo" className="size-10" />
             <span className="font-semibold">NutriFlow Caterer</span>
           </Link>
           <Button
@@ -105,7 +112,15 @@ export default function CatererLayout() {
               );
             })}
           </nav>
-          <div className="p-4 border-t">
+          <div className="p-4 border-t space-y-3">
+            {fullName && (
+              <div className="flex items-center gap-3 px-2 py-1">
+                <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <User className="size-4 text-primary" />
+                </div>
+                <p className="text-sm font-medium truncate">{fullName}</p>
+              </div>
+            )}
             <Button
               variant="ghost"
               className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"

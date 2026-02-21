@@ -7,10 +7,10 @@ import { Badge } from "../../components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { Label } from "../../components/ui/label";
 import { Skeleton } from "../../components/ui/skeleton";
-import { Search, Plus, ToggleLeft, ToggleRight, Trash2, Loader2, ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
+import { Search, Plus, ToggleLeft, ToggleRight, Trash2, Loader2, ChevronLeft, ChevronRight, Eye, EyeOff, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import {
-  getDietitians, searchDietitians, createDietitian, toggleDietitianStatus, deleteDietitian,
+  getDietitians, searchDietitians, createDietitian, toggleDietitianStatus, deleteDietitian, updateDietitian,
   type AdminDietitian,
 } from "../../services/adminService";
 
@@ -26,6 +26,13 @@ export default function AdminDietitians() {
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
   const [form, setForm] = useState({
+    firstName: "", lastName: "", email: "", phoneNumber: "", specialization: "", password: "",
+  });
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingDietitian, setEditingDietitian] = useState<AdminDietitian | null>(null);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
+  const [editForm, setEditForm] = useState({
     firstName: "", lastName: "", email: "", phoneNumber: "", specialization: "", password: "",
   });
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -86,6 +93,43 @@ export default function AdminDietitians() {
       toast.success("Dietitian deleted");
       await fetchDietitians(searchQuery || undefined, currentPage);
     } catch { toast.error("Failed to delete dietitian"); }
+  };
+
+  const openEditDialog = (dietitian: AdminDietitian) => {
+    setEditingDietitian(dietitian);
+    setEditForm({
+      firstName: dietitian.firstName ?? "",
+      lastName: dietitian.lastName ?? "",
+      email: dietitian.email ?? "",
+      phoneNumber: dietitian.phone ?? "",
+      specialization: dietitian.specialization ?? "",
+      password: "",
+    });
+    setShowEditPassword(false);
+    setEditDialogOpen(true);
+  };
+
+  const handleEditSubmit = async () => {
+    if (!editingDietitian) return;
+    setEditSubmitting(true);
+    try {
+      const payload: Record<string, string> = {};
+      if (editForm.firstName) payload.firstName = editForm.firstName;
+      if (editForm.lastName) payload.lastName = editForm.lastName;
+      if (editForm.email) payload.email = editForm.email;
+      if (editForm.phoneNumber) payload.phoneNumber = editForm.phoneNumber;
+      if (editForm.specialization) payload.specialization = editForm.specialization;
+      if (editForm.password) payload.password = editForm.password;
+      await updateDietitian(editingDietitian.id, payload);
+      toast.success("Dietitian updated");
+      setEditDialogOpen(false);
+      fetchDietitians(searchQuery || undefined, currentPage);
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(message ?? "Failed to update dietitian");
+    } finally {
+      setEditSubmitting(false);
+    }
   };
 
   const handleCreate = async () => {
@@ -184,6 +228,9 @@ export default function AdminDietitians() {
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
+                          <Button variant="ghost" size="icon" onClick={() => openEditDialog(dietitian)}>
+                            <Pencil className="size-4" />
+                          </Button>
                           <Button variant="ghost" size="icon" disabled={rowLoadingMap[dietitian.id] === true} onClick={() => handleToggle(dietitian.id)}>
                             {rowLoadingMap[dietitian.id] ? (
                               <Loader2 className="size-4 animate-spin text-muted-foreground" />
@@ -222,6 +269,65 @@ export default function AdminDietitians() {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Dietitian Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Dietitian</DialogTitle>
+            <DialogDescription>Update dietitian account details</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>First Name</Label>
+              <Input placeholder="Jane" value={editForm.firstName} onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Last Name</Label>
+              <Input placeholder="Smith" value={editForm.lastName} onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input type="email" placeholder="jane@nutriflow.com" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Phone</Label>
+              <Input type="tel" placeholder="+994 55-000-00-00" value={editForm.phoneNumber} onChange={(e) => setEditForm({ ...editForm, phoneNumber: e.target.value })} />
+            </div>
+            <div className="space-y-2 col-span-2">
+              <Label>Specialization</Label>
+              <Input placeholder="Clinical Nutrition" value={editForm.specialization} onChange={(e) => setEditForm({ ...editForm, specialization: e.target.value })} />
+            </div>
+            <div className="space-y-2 col-span-2">
+              <Label>New Password <span className="text-muted-foreground text-xs">(leave blank to keep current)</span></Label>
+              <div className="relative">
+                <Input
+                  type={showEditPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={editForm.password}
+                  onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3 text-muted-foreground"
+                  onClick={() => setShowEditPassword((v) => !v)}
+                >
+                  {showEditPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </Button>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleEditSubmit} disabled={editSubmitting}>
+              {editSubmitting ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Create Dietitian Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>

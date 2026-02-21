@@ -219,11 +219,25 @@ export default function AdminDashboard() {
       </div>
 
       {/* Charts */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-3 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>New Users</CardTitle>
-            <CardDescription>Daily user registrations</CardDescription>
+            <div className="flex items-start justify-between">
+              <div>
+                <CardTitle>New Users</CardTitle>
+                <CardDescription>Daily user registrations</CardDescription>
+              </div>
+              <div className="text-right">
+                {loading ? (
+                  <Skeleton className="h-8 w-12 ml-auto" />
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">{stat?.newUsersThisMonth ?? 0}</div>
+                    <p className="text-xs text-muted-foreground">this month</p>
+                  </>
+                )}
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="h-80">
@@ -265,6 +279,34 @@ export default function AdminDashboard() {
                     <YAxis />
                     <Tooltip />
                     <Bar dataKey="revenue" fill="hsl(var(--success))" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+                  No chart data available for this period
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Deliveries</CardTitle>
+            <CardDescription>Daily delivery activity</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-80">
+              {loading ? (
+                <Skeleton className="h-full w-full" />
+              ) : chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="deliveries" fill="hsl(var(--primary))" />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (

@@ -41,6 +41,7 @@ export interface ResetPasswordPayload {
  */
 export const register = async (payload: RegisterPayload) => {
   const { data } = await axiosClient.post(`${AUTH_BASE}/register`, payload);
+  
   return data;
 };
 
@@ -59,6 +60,10 @@ export const verifyOtp = async (payload: VerifyOtpPayload) => {
  */
 export const login = async (payload: LoginPayload) => {
   const { data } = await axiosClient.post(`${AUTH_BASE}/login`, payload);
+  console.log("Login response data:", data); // Debug log to inspect the response
+  if (data?.firstName && data?.lastName) {
+    localStorage.setItem("userFullName", `${data.firstName} ${data.lastName}`);
+  }
   if (data?.token) {
     localStorage.setItem("accessToken", data.token);
   }
