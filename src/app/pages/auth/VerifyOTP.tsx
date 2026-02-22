@@ -27,8 +27,13 @@ export default function VerifyOTP() {
     setLoading(true);
 
     try {
-      await authService.verifyOtp({ email, otpCode: otp });
+      const data = await authService.verifyOtp({ email, otpCode: otp });
       localStorage.removeItem("pendingEmail");
+      if (data?.token) localStorage.setItem("accessToken", data.token);
+      if (data?.refreshToken) localStorage.setItem("refreshToken", data.refreshToken);
+      if (data?.email) localStorage.setItem("userEmail", data.email);
+      if (data?.status) localStorage.setItem("userStatus", data.status);
+      if (data?.role) localStorage.setItem("userRole", data.role);
       toast.success("Email verified successfully!");
       navigate("/user/health-data");
     } catch (err: any) {

@@ -31,14 +31,14 @@ export default function Pricing() {
             <ImageWithFallback src={'src/assets/imgs/NutriFlow-white3.svg'} alt="NutriFlow Logo" className="size-10" />
             <span className="text-xl font-semibold">NutriFlow</span>
           </Link>
-          <div className="flex items-center gap-3">
+          {/* <div className="flex items-center gap-3">
             <Button variant="ghost" asChild>
               <Link to="/login">Login</Link>
             </Button>
             <Button asChild>
               <Link to="/register">Get started</Link>
             </Button>
-          </div>
+          </div> */}
         </div>
       </header>
 
