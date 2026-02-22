@@ -68,13 +68,15 @@ export interface AdminCaterer {
 
 export interface AdminMenu {
   menuId: number;
-  batchId: string;
-  userEmail?: string;
+  batchId: number;
   userFullName?: string;
   dietitianFullName?: string;
   catererFullName?: string;
-  month?: string;
+  year?: number;
+  month?: number;
+  totalItems?: number;
   status: string;
+  rejectionReason?: string | null;
   createdAt?: string;
 }
 
@@ -258,7 +260,7 @@ export const deleteSubAdmin = (id: number) =>
 export const getMenus = (page = 0, size = 20) =>
   axiosClient.get<Page<AdminMenu>>(`${BASE}/menus`, { params: { page, size } });
 
-export const getMenuById = (batchId: string) =>
+export const getMenuById = (batchId: number) =>
   axiosClient.get<AdminMenu>(`${BASE}/menus/${batchId}`);
 
 // ─── Payments ─────────────────────────────────────────────────────────────────
