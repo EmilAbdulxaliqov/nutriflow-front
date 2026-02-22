@@ -89,7 +89,7 @@ export default function DietitianLayout() {
         <div className="flex flex-col h-full">
           <div className="p-6 border-b">
             <Link to="/dietitian" className="flex items-center gap-2">
-              <Leaf className="size-8 text-primary" />
+              <ImageWithFallback src={'src/assets/imgs/NutriFlow-white3.svg'} alt="NutriFlow Logo" className="size-10" />
               <div>
                 <div className="text-xl font-semibold">NutriFlow</div>
                 <div className="text-xs text-muted-foreground">Dietitian Portal</div>

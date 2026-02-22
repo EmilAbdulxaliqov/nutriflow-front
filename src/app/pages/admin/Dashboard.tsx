@@ -138,7 +138,7 @@ export default function AdminDashboard() {
             {loading ? <Skeleton className="h-8 w-24" /> : (
               <>
                 <div className="text-2xl font-bold">
-                  ${(stat?.totalRevenue ?? 0).toLocaleString()}
+                  {(stat?.totalRevenue ?? 0).toLocaleString()} AZN
                 </div>
                 <p className="text-xs text-muted-foreground">This period</p>
               </>

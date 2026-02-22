@@ -67,10 +67,13 @@ export default function Landing() {
         className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50"
       >
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <button
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            className="flex items-center gap-2 cursor-pointer"
+          >
             <ImageWithFallback src={"src/assets/imgs/NutriFlow-white3.svg"} alt="NutriFlow Logo" className="size-8" />
             <span className="text-xl font-semibold">NutriFlow</span>
-          </div>
+          </button>
           <nav className="hidden md:flex items-center gap-6">
             <a href="#how-it-works" className="text-muted-foreground hover:text-foreground transition">
               {t("nav.howItWorks")}
@@ -94,64 +97,62 @@ export default function Landing() {
         </div>
       </motion.header>
 
-      {/* Hero */}
-      <section className="container mx-auto px-4 py-20 md:py-32">
-        <div className="max-w-4xl mx-auto text-center">
+      {/* Hero + Hero Image side-by-side */}
+      <section className="container mx-auto px-36 py-5">
+        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+          <div>
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="inline-flex items-center gap-2 bg-primary-light text-primary px-4 py-2 rounded-full mb-6"
+            >
+              <Leaf className="size-4" />
+              <span className="text-sm font-medium">{t("hero.badge")}</span>
+            </motion.div>
+            <motion.h1
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="text-4xl md:text-5xl font-bold mb-6 leading-tight"
+            >
+              {t("hero.title")}
+            </motion.h1>
+            <motion.p
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              className="text-lg md:text-xl text-muted-foreground mb-8"
+            >
+              {t("hero.subtitle")}
+            </motion.p>
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+              className="flex flex-col sm:flex-row gap-4"
+            >
+              <Button size="lg" asChild className="transition-transform hover:scale-105 active:scale-95">
+                <Link to="/register">{t("hero.cta")}</Link>
+              </Button>
+              <Button size="lg" variant="outline" asChild className="transition-transform hover:scale-105 active:scale-95">
+                <Link to="/pricing">{t("hero.viewPricing")}</Link>
+              </Button>
+            </motion.div>
+          </div>
           <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="inline-flex items-center gap-2 bg-primary-light text-primary px-4 py-2 rounded-full mb-6"
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.6 }}
+            className="rounded-2xl overflow-hidden shadow-2xl"
           >
-            <Leaf className="size-4" />
-            <span className="text-sm font-medium">{t("hero.badge")}</span>
-          </motion.div>
-          <motion.h1
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="text-4xl md:text-6xl font-bold mb-6 leading-tight"
-          >
-            {t("hero.title")}
-          </motion.h1>
-          <motion.p
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto"
-          >
-            {t("hero.subtitle")}
-          </motion.p>
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center"
-          >
-            <Button size="lg" asChild className="transition-transform hover:scale-105 active:scale-95">
-              <Link to="/register">{t("hero.cta")}</Link>
-            </Button>
-            <Button size="lg" variant="outline" asChild className="transition-transform hover:scale-105 active:scale-95">
-              <Link to="/pricing">{t("hero.viewPricing")}</Link>
-            </Button>
+            <ImageWithFallback
+              src="https://images.unsplash.com/photo-1667499745120-f9bcef8f584e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoZWFsdGh5JTIwbWVhbCUyMHByZXAlMjBjb250YWluZXJzfGVufDF8fHx8MTc3MTQ5NDU2OXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+              alt="Healthy meal prep containers with nutritious meals"
+              className="w-full h-[480px] object-cover"
+            />
           </motion.div>
         </div>
-      </section>
-
-      {/* Hero Image */}
-      <section className="container mx-auto px-4 pb-20">
-        <motion.div
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.6 }}
-          className="max-w-5xl mx-auto"
-        >
-          <ImageWithFallback
-            src="https://images.unsplash.com/photo-1667499745120-f9bcef8f584e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoZWFsdGh5JTIwbWVhbCUyMHByZXAlMjBjb250YWluZXJzfGVufDF8fHx8MTc3MTQ5NDU2OXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
-            alt="Healthy meal prep containers with nutritious meals"
-            className="w-full rounded-2xl shadow-2xl h-[400px] object-cover"
-          />
-        </motion.div>
       </section>
 
       {/* What is NutriFlow */}

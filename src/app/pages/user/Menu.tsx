@@ -203,7 +203,7 @@ export default function UserMenu() {
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setRejectDialogOpen(true)}>
             <XCircle className="size-4 mr-2" />
-            Request Changes
+            Reject Menu
           </Button>
           <Button onClick={() => setApproveDialogOpen(true)}>
             <CheckCircle className="size-4 mr-2" />

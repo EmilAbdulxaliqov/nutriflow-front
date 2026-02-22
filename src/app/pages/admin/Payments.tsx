@@ -54,7 +54,7 @@ export default function AdminPayments() {
           </CardHeader>
           <CardContent>
             {loading ? <Skeleton className="h-8 w-24" /> : (
-              <div className="text-2xl font-bold">${totalRevenue.toLocaleString()}</div>
+              <div className="text-2xl font-bold">{payments.length * 1500} AZN</div>
             )}
           </CardContent>
         </Card>
@@ -136,7 +136,7 @@ export default function AdminPayments() {
                       <TableCell className="font-mono text-sm">{payment.transactionId}</TableCell>
                       <TableCell className="text-muted-foreground">{payment.userEmail}</TableCell>
                       <TableCell className="font-semibold">
-                        ${payment.amount} {payment.currency}
+                        {payment.amount} {payment.currency}
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -185,7 +185,7 @@ export default function AdminPayments() {
                 <div>
                   <p className="text-sm text-muted-foreground">Amount</p>
                   <p className="text-lg font-semibold">
-                    ${selectedPayment.amount} {selectedPayment.currency}
+                    {selectedPayment.amount} {selectedPayment.currency}
                   </p>
                 </div>
                 <div>

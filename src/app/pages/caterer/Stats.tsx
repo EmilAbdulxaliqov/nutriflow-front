@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { getCatererStats, extractErrorMessage, type CatererStats } from "../../services/catererService";
 
 export default function CatererStats() {
-  const [stats, setStats] = useState<CatererStats | null>(null);
+  const [stats, setStats] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
@@ -47,21 +47,21 @@ export default function CatererStats() {
       )}
 
       {/* Stats Cards */}
-      <div className="grid md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalDeliveries ?? 0}</div>
+            <div className="text-2xl font-bold">{stats.totalOrders ?? 0}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Pending</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Ready</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-muted-foreground">{stats?.pendingDeliveries ?? 0}</div>
+            <div className="text-2xl font-bold text-muted-foreground">{stats.ready ?? 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -69,7 +69,7 @@ export default function CatererStats() {
             <CardTitle className="text-sm font-medium text-muted-foreground">In Progress</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-warning">{stats?.inProgressDeliveries ?? 0}</div>
+            <div className="text-2xl font-bold text-warning">{stats.inProgress ?? 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -77,7 +77,7 @@ export default function CatererStats() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Delivered</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-success">{stats?.deliveredDeliveries ?? 0}</div>
+            <div className="text-2xl font-bold text-success">{stats.delivered ?? 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -85,7 +85,15 @@ export default function CatererStats() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Failed</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-destructive">{stats?.failedDeliveries ?? 0}</div>
+            <div className="text-2xl font-bold text-destructive">{stats.failed ?? 0}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">On the way</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-destructive">{stats.onTheWay ?? 0}</div>
           </CardContent>
         </Card>
       </div>
