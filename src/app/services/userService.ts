@@ -5,7 +5,7 @@ const USER_BASE = "/api/v1/user";
 // ─── Shared Enums / Union Types ───────────────────────────────────────────────
 
 export type SubscriptionStatus = "ACTIVE" | "INACTIVE" | "CANCELLED" | "EXPIRED";
-export type MenuStatus = "PENDING" | "PREPARING" | "READY" | "APPROVED" | "REJECTED";
+export type MenuStatus = "PENDING" | "PREPARING" | "READY" | "SUBMITTED" | "APPROVED" | "REJECTED";
 export type DeliveryStatus = "PENDING" | "IN_PROGRESS" | "READY" | "ON_THE_WAY" | "DELIVERED";
 export type GoalType = "LOSE" | "GAIN" | "MAINTAIN";
 export type MealType = "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK";
@@ -70,15 +70,20 @@ export interface MenuItem {
   fats: number;
 }
 
-/** Response for GET /api/v1/user/my-menu (array, we take first element) */
+/** One batch inside a MyMenu response */
+export interface MenuBatch {
+  batchId: number;
+  status: MenuStatus;
+  items: MenuItem[];
+}
+
+/** Response for GET /api/v1/user/my-menu */
 export interface MyMenu {
   menuId: number;
-  batchId: number;
   year: number;
   month: number;
   dietaryNotes: string | null;
-  status: MenuStatus;
-  items: MenuItem[];
+  batches: MenuBatch[];
 }
 
 /** Response for GET /api/v1/user/medical-profile */
@@ -123,6 +128,7 @@ export interface DeliveryMeal {
 /** Response for GET /api/v1/user/deliveries (array item) */
 export interface Delivery {
   deliveryId: number;
+  catererNote: string | null;
   clientFullName: string;
   deliveryDate: string;
   dayNumber: number;
@@ -176,10 +182,10 @@ export const getDashboardSummary = async (): Promise<DashboardSummary> => {
   return data;
 };
 
-/** 2) GET /api/v1/user/my-menu — returns array, we expose the first entry or null */
+/** 2) GET /api/v1/user/my-menu */
 export const getMyMenu = async (): Promise<MyMenu | null> => {
-  const { data } = await axiosClient.get<MyMenu[]>(`${USER_BASE}/my-menu`);
-  return Array.isArray(data) && data.length > 0 ? data[0] : null;
+  const { data } = await axiosClient.get<MyMenu>(`${USER_BASE}/my-menu`);
+  return data ?? null;
 };
 
 /** 3) POST /api/v1/user/menu/approve */

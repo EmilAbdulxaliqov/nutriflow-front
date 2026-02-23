@@ -14,6 +14,7 @@ import {
   extractErrorMessage,
   type BatchDetailsResponse,
   type BatchItemResponse,
+  type MonthlyMenuBatchItem,
   type MealType,
 } from "../services/dietitianService";
 
@@ -171,13 +172,33 @@ function DayMenuCard({ day, year, month, itemsByMeal }: DayMenuCardProps) {
 
 // ─── MonthlyMenuView ──────────────────────────────────────────────────────────
 
-interface MonthlyMenuViewProps {
-  batchId: number;
+interface PreloadedData {
+  items: MonthlyMenuBatchItem[];
+  year: number;
+  month: number;
+  dietaryNotes?: string | null;
 }
 
-export default function MonthlyMenuView({ batchId }: MonthlyMenuViewProps) {
-  const [data, setData] = useState<BatchDetailsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+interface MonthlyMenuViewProps {
+  batchId: number;
+  /** When provided, items are rendered directly without an API call. */
+  preloaded?: PreloadedData;
+}
+
+export default function MonthlyMenuView({ batchId, preloaded }: MonthlyMenuViewProps) {
+  const [data, setData] = useState<BatchDetailsResponse | null>(() => {
+    if (!preloaded) return null;
+    return {
+      menuId: 0,
+      batchId,
+      year: preloaded.year,
+      month: preloaded.month,
+      dietaryNotes: preloaded.dietaryNotes ?? null,
+      status: "APPROVED",          // placeholder – not used in rendering
+      items: preloaded.items as BatchItemResponse[],
+    };
+  });
+  const [loading, setLoading] = useState(!preloaded);
   const [error, setError] = useState("");
 
   const fetch = () => {
@@ -190,9 +211,22 @@ export default function MonthlyMenuView({ batchId }: MonthlyMenuViewProps) {
   };
 
   useEffect(() => {
+    if (preloaded) {
+      // Re-sync when preloaded data changes (e.g. after refetch in parent)
+      setData({
+        menuId: 0,
+        batchId,
+        year: preloaded.year,
+        month: preloaded.month,
+        dietaryNotes: preloaded.dietaryNotes ?? null,
+        status: "APPROVED",
+        items: preloaded.items as BatchItemResponse[],
+      });
+      return;
+    }
     fetch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [batchId]);
+  }, [batchId, preloaded]);
 
   // ── Loading ──────────────────────────────────────────────────────────────
   if (loading) {
@@ -234,12 +268,9 @@ export default function MonthlyMenuView({ batchId }: MonthlyMenuViewProps) {
     itemsByDayMeal[item.day][item.mealType]!.push(item);
   }
 
-  // Default open: days that have data
   const daysWithData = Object.keys(itemsByDayMeal)
     .map(Number)
     .sort((a, b) => a - b);
-
-  const allDays = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
   const totalItems = data.items.length;
   const totalCalories = data.items.reduce((s, i) => s + i.calories, 0);
@@ -264,22 +295,22 @@ export default function MonthlyMenuView({ batchId }: MonthlyMenuViewProps) {
         )}
       </div>
 
-      {/* Days accordion — default open on days with data */}
-      {allDays.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-6">No days in this month.</p>
+      {/* Days accordion — only days that have items */}
+      {daysWithData.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center py-6">No meals planned yet.</p>
       ) : (
         <Accordion
           type="multiple"
           defaultValue={daysWithData.map(String)}
           className="space-y-2"
         >
-          {allDays.map((day) => (
+          {daysWithData.map((day) => (
             <DayMenuCard
               key={day}
               day={day}
               year={data.year}
               month={data.month}
-              itemsByMeal={itemsByDayMeal[day] ?? {}}
+              itemsByMeal={itemsByDayMeal[day]}
             />
           ))}
         </Accordion>

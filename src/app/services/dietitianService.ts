@@ -131,6 +131,33 @@ export interface BatchDetailsResponse {
   items: BatchItemResponse[];
 }
 
+/** Item shape inside MonthlyMenuBatch (no `id` field) */
+export interface MonthlyMenuBatchItem {
+  day: number;
+  mealType: MealType;
+  description: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+}
+
+/** One batch inside the MonthlyMenuResponse */
+export interface MonthlyMenuBatch {
+  batchId: number;
+  status: MenuBatchStatus;
+  items: MonthlyMenuBatchItem[];
+}
+
+/** Response for GET /api/v1/dietitian/menu/{userId}?year=&month= */
+export interface MonthlyMenuResponse {
+  menuId: number;
+  year: number;
+  month: number;
+  dietaryNotes: string | null;
+  batches: MonthlyMenuBatch[];
+}
+
 export interface RejectionReasonResponse {
   batchId: number;
   userId: number;
@@ -208,8 +235,8 @@ export const getMonthlyMenu = async (
   userId: number,
   year: number,
   month: number
-): Promise<MenuBatch | null> => {
-  const { data } = await axiosClient.get<MenuBatch | null>(
+): Promise<MonthlyMenuResponse | null> => {
+  const { data } = await axiosClient.get<MonthlyMenuResponse | null>(
     `${DIETITIAN_BASE}/menu/${userId}`,
     { params: { year, month } }
   );

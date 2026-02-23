@@ -116,7 +116,8 @@ export default function DietitianPatients() {
                     <TableHead>Email</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Goal</TableHead>
-                    <TableHead />
+                    <TableHead className="text-center">View patient</TableHead>
+                    <TableHead className="text-center">Create menu</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -130,19 +131,19 @@ export default function DietitianPatients() {
                         <UserLifecycleBadge status={patient.status} />
                       </TableCell>
                       <TableCell>{patient.goal ?? "—"}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="icon" asChild>
-                            <Link to={`/dietitian/patients/${patient.userId}`} title="View patient">
-                              <Eye className="size-4" />
-                            </Link>
-                          </Button>
-                          <Button variant="outline" size="icon" asChild>
-                            <Link to={`/dietitian/menu-editor/${patient.userId}`} title="Create menu">
-                              <FilePlus className="size-4" />
-                            </Link>
-                          </Button>
-                        </div>
+                      <TableCell className="text-center">
+                        <Button variant="ghost" size="icon" asChild>
+                          <Link to={`/dietitian/patients/${patient.userId}`} title="View patient">
+                            <Eye className="size-4" />
+                          </Link>
+                        </Button>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Button variant="outline" size="icon" asChild>
+                          <Link to={`/dietitian/menu-editor/${patient.userId}`} title="Create menu">
+                            <FilePlus className="size-4" />
+                          </Link>
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}

@@ -50,7 +50,7 @@ import {
   downloadPatientFile,
   extractErrorMessage,
   type PatientProfileData,
-  type MenuBatch,
+  type MonthlyMenuResponse,
   type MealType,
 } from "../../services/dietitianService";
 
@@ -68,17 +68,17 @@ export default function PatientProfile() {
   const [patientLoading, setPatientLoading] = useState(true);
   const [patientError, setPatientError] = useState("");
 
-  const [batch, setBatch] = useState<MenuBatch | null>(null);
+  const [monthlyMenu, setMonthlyMenu] = useState<MonthlyMenuResponse | null>(null);
   const [batchLoading, setBatchLoading] = useState(true);
 
-  const [rejectionReason, setRejectionReason] = useState<string | null>(null);
+  const [rejectionReasons, setRejectionReasons] = useState<Record<number, string>>({});
 
-  const [submitLoading, setSubmitLoading] = useState(false);
+  const [submitLoadingId, setSubmitLoadingId] = useState<number | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [fileLoading, setFileLoading] = useState<number | null>(null);
 
   // Delete dialog
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteDialogBatchId, setDeleteDialogBatchId] = useState<number | null>(null);
   const [deleteDay, setDeleteDay] = useState("");
   const [deleteMealType, setDeleteMealType] = useState<string>("all");
 
@@ -102,19 +102,21 @@ export default function PatientProfile() {
     if (!userId) return;
     setBatchLoading(true);
     getMonthlyMenu(userId, year, month)
-      .then(async (b) => {
-        setBatch(b);
-        if (b?.batchId) {
-          if (b.status === "REJECTED") {
-            getBatchRejectionReason(b.batchId)
-              .then((r) => setRejectionReason(r.rejectionReason ?? null))
-              .catch(() => {});
-          } else {
-            setRejectionReason(null);
-          }
-        } else {
-          setRejectionReason(null);
-        }
+      .then(async (menu) => {
+        setMonthlyMenu(menu);
+        if (!menu) return;
+        // Load rejection reasons for all REJECTED batches in parallel
+        const reasons: Record<number, string> = {};
+        await Promise.allSettled(
+          menu.batches
+            .filter((b) => b.status === "REJECTED")
+            .map((b) =>
+              getBatchRejectionReason(b.batchId).then((r) => {
+                if (r.rejectionReason) reasons[b.batchId] = r.rejectionReason;
+              })
+            )
+        );
+        setRejectionReasons(reasons);
       })
       .catch((err) => toast.error(extractErrorMessage(err, "Failed to load menu.")))
       .finally(() => setBatchLoading(false));
@@ -125,30 +127,29 @@ export default function PatientProfile() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, year, month]);
 
-  const handleSubmit = () => {
-    if (!batch) return;
-    setSubmitLoading(true);
-    submitBatch(batch.batchId)
+  const handleSubmit = (batchId: number) => {
+    setSubmitLoadingId(batchId);
+    submitBatch(batchId)
       .then(() => {
         toast.success("Menu submitted to patient.");
         loadMenu();
       })
       .catch((err) => toast.error(extractErrorMessage(err, "Failed to submit batch.")))
-      .finally(() => setSubmitLoading(false));
+      .finally(() => setSubmitLoadingId(null));
   };
 
   const handleDelete = () => {
-    if (!batch) return;
+    if (deleteDialogBatchId === null) return;
     const opts: { day?: number; mealType?: MealType } = {};
     const dayNum = parseInt(deleteDay);
     if (!isNaN(dayNum) && dayNum >= 1 && dayNum <= 31) opts.day = dayNum;
     if (deleteMealType !== "all" && opts.day) opts.mealType = deleteMealType as MealType;
 
     setDeleteLoading(true);
-    deleteBatchContent(batch.batchId, opts)
+    deleteBatchContent(deleteDialogBatchId, opts)
       .then(() => {
         toast.success("Content deleted.");
-        setDeleteDialogOpen(false);
+        setDeleteDialogBatchId(null);
         setDeleteDay("");
         setDeleteMealType("all");
         loadMenu();
@@ -347,7 +348,7 @@ export default function PatientProfile() {
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-40 w-full" />
             </div>
-          ) : !batch ? (
+          ) : !monthlyMenu || monthlyMenu.batches.length === 0 ? (
             <div className="py-8 text-center text-muted-foreground space-y-4">
               <Calendar className="size-10 mx-auto opacity-40" />
               <div>
@@ -362,74 +363,95 @@ export default function PatientProfile() {
               </Button>
             </div>
           ) : (
-            <>
-              {/* Batch status row */}
-              <div className="flex flex-wrap items-center gap-3 p-4 bg-muted rounded-lg">
-                <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">Batch #{batch.batchId}</p>
-                  <p className="font-medium">
-                    {MONTHS[batch.month - 1]} {batch.year}
-                  </p>
-                  {batch.dietaryNotes && (
-                    <p className="text-sm text-muted-foreground mt-1">{batch.dietaryNotes}</p>
-                  )}
-                </div>
-                <MenuStatusBadge status={batch.status} />
-              </div>
+            <div className="space-y-8">
+              {monthlyMenu.batches.map((b, idx) => (
+                <div key={b.batchId} className="space-y-4">
+                  {idx > 0 && <div className="border-t" />}
 
-              {/* Rejection reason */}
-              {batch.status === "REJECTED" && rejectionReason && (
-                <div className="flex items-start gap-3 p-4 bg-destructive/10 rounded-lg border border-destructive/30">
-                  <AlertCircle className="size-5 text-destructive flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-medium text-sm text-destructive">Rejection Reason</p>
-                    <p className="text-sm text-muted-foreground mt-1">{rejectionReason}</p>
+                  {/* Batch status row */}
+                  <div className="flex flex-wrap items-center gap-3 p-4 bg-muted rounded-lg">
+                    <div className="flex-1">
+                      <p className="text-sm text-muted-foreground">Batch #{b.batchId}</p>
+                      <p className="font-medium">
+                        {MONTHS[monthlyMenu.month - 1]} {monthlyMenu.year}
+                      </p>
+                      {monthlyMenu.dietaryNotes && (
+                        <p className="text-sm text-muted-foreground mt-1">{monthlyMenu.dietaryNotes}</p>
+                      )}
+                    </div>
+                    <MenuStatusBadge status={b.status} />
+                  </div>
+
+                  {/* Rejection reason */}
+                  {b.status === "REJECTED" && rejectionReasons[b.batchId] && (
+                    <div className="flex items-start gap-3 p-4 bg-destructive/10 rounded-lg border border-destructive/30">
+                      <AlertCircle className="size-5 text-destructive flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-sm text-destructive">Rejection Reason</p>
+                        <p className="text-sm text-muted-foreground mt-1">{rejectionReasons[b.batchId]}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex flex-wrap gap-3">
+                    {b.status !== "APPROVED" && (
+                      <Button asChild variant="outline">
+                        <Link to={`/dietitian/menu-editor/${userId}/${b.batchId}`}>
+                          <Calendar className="size-4 mr-2" />
+                          {b.status === "DRAFT" || b.status === "REJECTED" ? "Edit Menu" : "View/Edit Menu"}
+                        </Link>
+                      </Button>
+                    )}
+                    {(b.status === "DRAFT" || b.status === "REJECTED") && (
+                      <Button
+                        onClick={() => handleSubmit(b.batchId)}
+                        disabled={submitLoadingId === b.batchId}
+                      >
+                        {submitLoadingId === b.batchId ? (
+                          <><Loader2 className="size-4 mr-2 animate-spin" />Submitting...</>
+                        ) : (
+                          <><Send className="size-4 mr-2" />Submit to Patient</>
+                        )}
+                      </Button>
+                    )}
+                    {b.status !== "APPROVED" && (
+                      <Button
+                        variant="destructive"
+                        onClick={() => {
+                          setDeleteDialogBatchId(b.batchId);
+                          setDeleteDay("");
+                          setDeleteMealType("all");
+                        }}
+                      >
+                        <Trash2 className="size-4 mr-2" />
+                        Delete Content
+                        <ChevronDown className="size-4 ml-1" />
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Batch items */}
+                  <div className="mt-2">
+                    <MonthlyMenuView
+                      batchId={b.batchId}
+                      preloaded={{
+                        items: b.items,
+                        year: monthlyMenu.year,
+                        month: monthlyMenu.month,
+                        dietaryNotes: monthlyMenu.dietaryNotes,
+                      }}
+                    />
                   </div>
                 </div>
-              )}
-
-              {/* Actions */}
-              <div className="flex flex-wrap gap-3">
-                {batch.status !== "APPROVED" && (
-                  <Button asChild variant="outline">
-                    <Link to={`/dietitian/menu-editor/${userId}/${batch.batchId}`}>
-                      <Calendar className="size-4 mr-2" />
-                      {batch.status === "DRAFT" || batch.status === "REJECTED" ? "Edit Menu" : "View/Edit Menu"}
-                    </Link>
-                  </Button>
-                )}
-                {(batch.status === "DRAFT" || batch.status === "REJECTED") && (
-                  <Button onClick={handleSubmit} disabled={submitLoading}>
-                    {submitLoading ? (
-                      <><Loader2 className="size-4 mr-2 animate-spin" />Submitting...</>
-                    ) : (
-                      <><Send className="size-4 mr-2" />Submit to Patient</>
-                    )}
-                  </Button>
-                )}
-                {batch.status !== "APPROVED" && (
-                  <Button
-                    variant="destructive"
-                    onClick={() => setDeleteDialogOpen(true)}
-                  >
-                    <Trash2 className="size-4 mr-2" />
-                    Delete Content
-                    <ChevronDown className="size-4 ml-1" />
-                  </Button>
-                )}
-              </div>
-
-              {/* Monthly menu view */}
-              <div className="mt-2">
-                <MonthlyMenuView batchId={batch.batchId} />
-              </div>
-            </>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>
 
       {/* Delete Content Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <Dialog open={deleteDialogBatchId !== null} onOpenChange={(open) => { if (!open) setDeleteDialogBatchId(null); }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Batch Content</DialogTitle>

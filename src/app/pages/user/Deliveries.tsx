@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Button } from "../../components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../../components/ui/sheet";
 import { DeliveryStatusBadge } from "../../components/StatusBadges";
-import { Search, MapPin, Phone, Calendar as CalendarIcon, Clock, Package, AlertCircle } from "lucide-react";
+import { Search, MapPin, Phone, Calendar as CalendarIcon, Clock, Package, AlertCircle, Notebook } from "lucide-react";
 import { Skeleton } from "../../components/ui/skeleton";
 import { toast } from "sonner";
 import { getDeliveries, extractErrorMessage, type Delivery } from "../../services/userService";
@@ -274,6 +274,15 @@ export default function UserDeliveries() {
                   {selectedDelivery.deliveryNotes && (
                     <p className="text-sm text-muted-foreground pl-8 mt-1 italic">
                       Note: {selectedDelivery.deliveryNotes}
+                    </p>
+                  )}
+                  <div className="flex items-start gap-3 my-2">
+                    <Notebook className="size-5 text-muted-foreground mt-0.5" />
+                    <div className="text-sm font-medium">Caterer note:</div>
+                  </div>
+                  {selectedDelivery.catererNote && (
+                    <p className="text-sm text-muted-foreground pl-8 mt-1 italic">
+                      {selectedDelivery.catererNote}
                     </p>
                   )}
                 </div>

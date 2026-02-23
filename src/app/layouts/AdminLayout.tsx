@@ -18,7 +18,7 @@ export default function AdminLayout() {
     { path: "/admin/menus", label: "Menus", icon: Calendar },
     { path: "/admin/payments", label: "Payments", icon: CreditCard },
     { path: "/admin/logs", label: "Logs", icon: FileText },
-    { path: "/admin/tools", label: "Tools", icon: Wrench },
+    // { path: "/admin/tools", label: "Tools", icon: Wrench },
   ];
 
   const handleLogout = () => {

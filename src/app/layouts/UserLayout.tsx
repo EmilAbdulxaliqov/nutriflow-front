@@ -90,7 +90,10 @@ export default function UserLayout() {
           <div className="p-6 border-b">
             <Link to="/user" className="flex items-center gap-2">
               <ImageWithFallback src={'/src/assets/imgs/NutriFlow-white3.svg'} alt="NutriFlow Logo" className="size-10" />
-              <span className="text-xl font-semibold">NutriFlow</span>
+              <div>
+                <div className="text-xl font-semibold">NutriFlow</div>
+                <div className="text-xs text-muted-foreground">User dashboard</div>
+              </div>
             </Link>
           </div>
           <nav className="flex-1 p-4 space-y-1">

@@ -260,6 +260,7 @@ export default function CatererToday() {
                   <TableHead>District</TableHead>
                   <TableHead>Address</TableHead>
                   <TableHead>Date</TableHead>
+                  <TableHead>Deleviry notes</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Est. Time</TableHead>
                   <TableHead>Note</TableHead>
@@ -293,6 +294,7 @@ export default function CatererToday() {
                           {delivery.fullAddress}
                         </TableCell>
                         <TableCell>{delivery.deliveryDate}</TableCell>
+                        <TableCell>{delivery.deliveryNotes ?? "—"}</TableCell>
                         <TableCell><DeliveryStatusBadge status={delivery.status} /></TableCell>
                         <TableCell>{delivery.estimatedTime ?? "—"}</TableCell>
                         <TableCell className="max-w-32">
