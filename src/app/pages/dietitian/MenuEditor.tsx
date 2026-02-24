@@ -199,8 +199,9 @@ export default function MenuEditor() {
     return true;
   };
 
-  // Commit all 4 meals for current day into the items map
-  const commitCurrentDay = (): boolean => {
+  // Commit all 4 meals for current day into the items map.
+  // Returns the updated map on success, or null if validation fails.
+  const commitCurrentDay = (): Map<string, MenuItemRequest> | null => {
     const newErrors: Partial<Record<MealType, string>> = {};
     let valid = true;
     const updatedMap = new Map(items);
@@ -240,8 +241,9 @@ export default function MenuEditor() {
     }
 
     setFormErrors(newErrors);
-    if (valid) setItems(updatedMap);
-    return valid;
+    if (!valid) return null;
+    setItems(updatedMap);
+    return updatedMap;
   };
 
   const buildDto = (committedItems?: Map<string, MenuItemRequest>) => ({
@@ -253,8 +255,8 @@ export default function MenuEditor() {
   });
 
   const handleSave = () => {
-    if (!commitCurrentDay()) return;
-    const committedItems = new Map(items);
+    const committedItems = commitCurrentDay();
+    if (committedItems === null) return;
 
     if (committedItems.size === 0) {
       toast.info("Add at least one meal before saving.");
@@ -290,8 +292,8 @@ export default function MenuEditor() {
   const handleSubmit = () => {
     // Submit is only reachable when a draft already exists (button is hidden otherwise).
     if (!activeBatchId) return;
-    if (!commitCurrentDay()) return;
-    const committedItems = new Map(items);
+    const committedItems = commitCurrentDay();
+    if (committedItems === null) return;
 
     if (committedItems.size === 0) {
       toast.info("Add at least one meal before submitting.");
